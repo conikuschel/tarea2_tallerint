@@ -86,14 +86,21 @@ def leaguesdetailteam(request, pk):
         except equipo.DoesNotExist:
             return Response(status=status.HTTP_204_NO_CONTENT)
     elif request.method=='POST':
+        string = request.data['name']+':'+request.data['city']
+        request.data['id'] = b64encode(string.encode()).decode('utf')
+        request.data['id'] = request.data['id'][:21]
+        request.data.update({"id": request.data['id']})
         request.data.update({"liga_id": pk})
         request.data.update({"league": "http://127.0.0.1:8000/webapp/leagues/{}".format(request.data['liga_id'])})
         request.data.update({"players": "http://127.0.0.1:8000/webapp/teams/{}/players".format(request.data['id'])})
         request.data.update({"selfi": "http://127.0.0.1:8000/webapp/leagues/{}".format(request.data['id'])})
+        print(request.data)
         serializer = EquipoSerializer(data=request.data)
 
         if serializer.is_valid():
             serializer.save()
+        else:
+            print(serializer.errors)
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     else:
@@ -109,6 +116,11 @@ def teamsdetailplayer(request, pk):
         except jugador.DoesNotExist:
             return Response(status=status.HTTP_204_NO_CONTENT)
     elif request.method=='POST':
+        string = request.data['name']+':'+request.data['city']
+        request.data['id'] = b64encode(string.encode()).decode('utf')
+        request.data['id'] = request.data['id'][:21]
+        print(request.data)
+        request.data.update({"id": request.data['id']})
         request.data.update({"equipo_id": pk})
         equipote = equipo.objects.get(id=pk)
         request.data.update({"league": "http://127.0.0.1:8000/webapp/leagues/{}".format(equipote.liga_id)})
