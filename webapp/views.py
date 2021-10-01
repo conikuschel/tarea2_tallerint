@@ -44,16 +44,23 @@ def leagueslist(request):
         string = request.data['name']+':'+request.data['sport']
         request.data['id'] = b64encode(string.encode()).decode('utf')
         request.data['id'] = request.data['id'][:21]
-        request.data.update({"id": request.data['id']})
-        request.data.update({"teams": "http://127.0.0.1:8000/webapp/leagues/{}/teams".format(request.data['id'])})
-        request.data.update({"players": "http://127.0.0.1:8000/webapp/teams/{}/players".format(request.data['id'])})
-        request.data.update({"selfi": "http://127.0.0.1:8000/webapp/leagues/{}".format(request.data['id'])})
-        serializer = LigaSerializer(data=request.data)
+        try:
+            lig = liga.objects.get(id=request.data['id'])
+            serializer = EquipoSerializer(liga, many=False)
+            return Response(serializer.data,status=status.HTTP_409_CONFLICT)
+        except liga.DoesNotExist:
+            request.data.update({"id": request.data['id']})
+            request.data.update({"teams": "http://127.0.0.1:8000/webapp/leagues/{}/teams".format(request.data['id'])})
+            request.data.update({"players": "http://127.0.0.1:8000/webapp/teams/{}/players".format(request.data['id'])})
+            request.data.update({"selfi": "http://127.0.0.1:8000/webapp/leagues/{}".format(request.data['id'])})
+            serializer = LigaSerializer(data=request.data)
 
-        if serializer.is_valid():
-            serializer.save()
+            if serializer.is_valid():
+                serializer.save()
+            else:
+                return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        return Response(serializer.data)
+            return Response(serializer.data)
     else:
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
     
@@ -87,19 +94,29 @@ def leaguesdetailteam(request, pk):
         string = request.data['name']+':'+request.data['city']
         request.data['id'] = b64encode(string.encode()).decode('utf')
         request.data['id'] = request.data['id'][:21]
-        request.data.update({"id": request.data['id']})
-        request.data.update({"liga_id": pk})
-        request.data.update({"league": "http://127.0.0.1:8000/webapp/leagues/{}".format(request.data['liga_id'])})
-        request.data.update({"players": "http://127.0.0.1:8000/webapp/teams/{}/players".format(request.data['id'])})
-        request.data.update({"selfi": "http://127.0.0.1:8000/webapp/leagues/{}".format(request.data['id'])})
-        serializer = EquipoSerializer(data=request.data)
+        try:
+            equi = equipo.objects.get(id=request.data['id'])
+            serializer = EquipoSerializer(equi, many=False)
+            return Response(serializer.data,status=status.HTTP_409_CONFLICT)
+        except equipo.DoesNotExist:
+            request.data.update({"id": request.data['id']})
+            request.data.update({"liga_id": pk})
+            try:
+                liga.objects.get(id=pk)
+                request.data.update({"league": "http://127.0.0.1:8000/webapp/leagues/{}".format(request.data['liga_id'])})
+                request.data.update({"players": "http://127.0.0.1:8000/webapp/teams/{}/players".format(request.data['id'])})
+                request.data.update({"selfi": "http://127.0.0.1:8000/webapp/teams/{}".format(request.data['id'])})
+                serializer = EquipoSerializer(data=request.data)
 
-        if serializer.is_valid():
-            serializer.save()
-        else:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
+                if serializer.is_valid():
+                    serializer.save()
+                else:
+                    return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+            except liga.DoesNotExist:
+                return Response(status=status.HTTP_422_UNPROCESSABLE_ENTITY)
     else:
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
@@ -116,21 +133,32 @@ def teamsdetailplayer(request, pk):
         string = request.data['name']+':'+request.data['position']
         request.data['id'] = b64encode(string.encode()).decode('utf')
         request.data['id'] = request.data['id'][:21]
-        print(request.data)
-        request.data.update({"id": request.data['id']})
-        request.data.update({"equipo_id": pk})
-        equipote = equipo.objects.get(id=pk)
-        ligasi_id= getattr(equipo.objects.get(id=pk), 'liga_id', None)
-        print(ligasi_id[5:11])
-        request.data.update({"league": "http://127.0.0.1:8000/webapp/leagues/{}".format(ligasi_id)})
-        request.data.update({"team": "http://127.0.0.1:8000/webapp/teams/{}".format(request.data['equipo_id'])})
-        request.data.update({"selfi": "http://127.0.0.1:8000/webapp/players/{}".format(request.data['id'])})
-        serializer = JugadorSerializer(data=request.data)
+        try:
+            jug = jugador.objects.get(id=request.data['id'])
+            serializer = EquipoSerializer(jug, many=False)
+            return Response(serializer.data,status=status.HTTP_409_CONFLICT)
+        except jugador.DoesNotExist:
+            request.data.update({"id": request.data['id']})
+            request.data.update({"equipo_id": pk})
+            try:
+                print(pk)
+                equipote = equipo.objects.get(id=pk)
+                serializer2 = EquipoSerializer(equipote, many=False)
+                request.data.update({"league": "http://127.0.0.1:8000/webapp/leagues/{}".format(serializer2.data['liga_id'])})
+                request.data.update({"team": "http://127.0.0.1:8000/webapp/teams/{}".format(request.data['equipo_id'])})
+                request.data.update({"selfi": "http://127.0.0.1:8000/webapp/players/{}".format(request.data['id'])})
+                serializer = JugadorSerializer(data=request.data)
+                print(request.data)
 
-        if serializer.is_valid():
-            serializer.save()
+                if serializer.is_valid():
+                    serializer.save()
+                else:
+                    print(serializer.errors)
+                    return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            except equipo.DoesNotExist:
+                return Response(status=status.HTTP_422_UNPROCESSABLE_ENTITY)
     else:
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
@@ -139,7 +167,7 @@ def teamlist(request):
     if request.method=='GET':
         teams = equipo.objects.all()
         serializer = EquipoSerializer(teams, many=True)
-        return Response(serializer.data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     else:
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
@@ -149,26 +177,32 @@ def teamsdetail(request, pk):
         try:
             teams = equipo.objects.get(id=pk)
             serializer = EquipoSerializer(teams, many=False)
-            return Response(serializer.data)
+            return Response(serializer.data,status=status.HTTP_200_OK)
         except equipo.DoesNotExist:
-            return Response(status=status.HTTP_204_NO_CONTENT)
+            return Response(status=status.HTTP_404_NOT_FOUND)
     elif request.method=='DELETE':
-        team = equipo.objects.get(id=pk)
-        team.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        try:
+            team = equipo.objects.get(id=pk)
+            team.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except equipo.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
     else:
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 @api_view(['GET'])
 def leaguesplayers(request,pk):
     if request.method=='GET':
-        equipos = equipo.objects.filter(liga_id=pk)
-        listasi = []
-        for team in equipos.iterator():
-            listasi.append(team.id)
-        players = jugador.objects.filter(equipo_id__in=listasi)
-        serializer = JugadorSerializer(players, many=True)
-        return Response(serializer.data)
+        try:
+            equipos = equipo.objects.filter(liga_id=pk)
+            listasi = []
+            for team in equipos.iterator():
+                listasi.append(team.id)
+            players = jugador.objects.filter(equipo_id__in=listasi)
+            serializer = JugadorSerializer(players, many=True)
+            return Response(serializer.data)
+        except equipo.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
     else:
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
     

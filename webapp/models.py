@@ -25,7 +25,7 @@ class jugador(models.Model):
     name = models.CharField(max_length=100)
     age = models.IntegerField()
     position = models.CharField(max_length=100)
-    time_trained = models.IntegerField()
+    time_trained = models.IntegerField(default=0)
     league = models.CharField(max_length=100, default=' ')
     team = models.CharField(max_length=100, default=' ')
     selfi = models.CharField(max_length=100, default=' ')
