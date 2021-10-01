@@ -8,7 +8,7 @@ class liga(models.Model):
     sport = models.CharField(max_length=100)
     teams = models.CharField(max_length=100, default=' ')
     players = models.CharField(max_length=100, default=' ')
-    selfi = models.CharField(max_length=100, default=' ')
+    _self = models.CharField(max_length=100, default=' ')
 
 class equipo(models.Model):
     liga_id = models.ForeignKey(liga, on_delete=models.CASCADE)
@@ -17,7 +17,7 @@ class equipo(models.Model):
     city = models.CharField(max_length=100)
     league = models.CharField(max_length=100, default=' ')
     players = models.CharField(max_length=100, default=' ')
-    selfi = models.CharField(max_length=100, default=' ')
+    _self = models.CharField(max_length=100, default=' ')
 
 class jugador(models.Model):
     id = models.CharField(max_length=100, primary_key=True)
@@ -28,5 +28,5 @@ class jugador(models.Model):
     time_trained = models.IntegerField(default=0)
     league = models.CharField(max_length=100, default=' ')
     team = models.CharField(max_length=100, default=' ')
-    selfi = models.CharField(max_length=100, default=' ')
+    _self = models.CharField(max_length=100, default=' ')
 
