@@ -1,0 +1,233 @@
+from django.shortcuts import render
+from django.views.decorators.csrf import csrf_exempt
+from rest_framework.parsers import JSONParser
+from django.http.response import JsonResponse
+from django.http import HttpResponse
+from rest_framework import status
+from base64 import b64encode
+
+from webapp.models import liga,equipo,jugador
+from webapp.serializers import LigaSerializer,JugadorSerializer, EquipoSerializer
+
+from django.core.files.storage import default_storage
+from django.http import JsonResponse
+
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+
+
+# Create your views here.
+
+@api_view(['GET'])
+def apiOverview(request):
+    api_urls = {
+        'Ligas':'/leagues/',
+        'Ligas_id':'/leagues/<str:league_id>/',
+        'Ligas_id_teams':'/leagues/<str:league_id>/teams/',
+        'Ligas_id_players':'/leagues/<str:league_id>/players/',
+        'Teams':'/teams/',
+        'Teams_id':'/teams/<str:team_id>/',
+        'Teams_id_player':'/teams/<str:team_id>/players/',
+        'Players':'/players/',
+        'Players_id':'/players/<str:player_id>/',
+        }
+
+    return Response(api_urls)
+
+@api_view(['GET','POST'])
+def leagueslist(request):
+    if request.method=='GET':
+        leagues = liga.objects.all()
+        serializer = LigaSerializer(leagues, many=True)
+        return Response(serializer.data)
+    elif request.method=='POST':
+        string = request.data['name']+':'+request.data['sport']
+        request.data['id'] = b64encode(string.encode()).decode('utf')
+        request.data['id'] = request.data['id'][:21]
+        print(request.data)
+        request.data.update({"id": request.data['id']})
+        request.data.update({"teams": "http://127.0.0.1:8000/webapp/leagues/{}/teams".format(request.data['id'])})
+        request.data.update({"players": "http://127.0.0.1:8000/webapp/teams/{}/players".format(request.data['id'])})
+        request.data.update({"selfi": "http://127.0.0.1:8000/webapp/leagues/{}".format(request.data['id'])})
+        print(request.data)
+        serializer = LigaSerializer(data=request.data)
+
+        if serializer.is_valid():
+            serializer.save()
+
+        return Response(serializer.data)
+    else:
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+    
+
+@api_view(['GET', 'DELETE'])
+def leaguesdetail(request, pk):
+    if request.method=='GET':
+        try:
+            leagues = liga.objects.get(id=pk)
+            serializer = LigaSerializer(leagues, many=False)
+            return Response(serializer.data)
+        except liga.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+    elif request.method=='DELETE':
+        league = liga.objects.get(id=pk)
+        league.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    else:
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+@api_view(['GET', 'POST'])
+def leaguesdetailteam(request, pk):
+    if request.method=='GET':
+        try:
+            teams = equipo.objects.filter(liga_id=pk)
+            serializer = EquipoSerializer(teams, many=True)
+            return Response(serializer.data)
+        except equipo.DoesNotExist:
+            return Response(status=status.HTTP_204_NO_CONTENT)
+    elif request.method=='POST':
+        request.data.update({"liga_id": pk})
+        request.data.update({"league": "http://127.0.0.1:8000/webapp/leagues/{}".format(request.data['liga_id'])})
+        request.data.update({"players": "http://127.0.0.1:8000/webapp/teams/{}/players".format(request.data['id'])})
+        request.data.update({"selfi": "http://127.0.0.1:8000/webapp/leagues/{}".format(request.data['id'])})
+        serializer = EquipoSerializer(data=request.data)
+
+        if serializer.is_valid():
+            serializer.save()
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    else:
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+@api_view(['GET', 'POST'])
+def teamsdetailplayer(request, pk):
+    if request.method=='GET':
+        try:
+            player = jugador.objects.filter(equipo_id=pk)
+            serializer = JugadorSerializer(player, many=True)
+            return Response(serializer.data)
+        except jugador.DoesNotExist:
+            return Response(status=status.HTTP_204_NO_CONTENT)
+    elif request.method=='POST':
+        request.data.update({"equipo_id": pk})
+        equipote = equipo.objects.get(id=pk)
+        request.data.update({"league": "http://127.0.0.1:8000/webapp/leagues/{}".format(equipote.liga_id)})
+        request.data.update({"team": "http://127.0.0.1:8000/webapp/teams/{}".format(request.data['equipo_id'])})
+        request.data.update({"selfi": "http://127.0.0.1:8000/webapp/players/{}".format(request.data['id'])})
+        serializer = JugadorSerializer(data=request.data)
+
+        if serializer.is_valid():
+            serializer.save()
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    else:
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+@api_view(['GET'])
+def teamlist(request):
+    if request.method=='GET':
+        teams = equipo.objects.all()
+        serializer = EquipoSerializer(teams, many=True)
+        return Response(serializer.data)
+    else:
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+@api_view(['GET','DELETE'])
+def teamsdetail(request, pk):
+    if request.method=='GET':
+        try:
+            teams = equipo.objects.get(id=pk)
+            serializer = EquipoSerializer(teams, many=False)
+            return Response(serializer.data)
+        except equipo.DoesNotExist:
+            return Response(status=status.HTTP_204_NO_CONTENT)
+    elif request.method=='DELETE':
+        team = equipo.objects.get(id=pk)
+        team.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    else:
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+@api_view(['GET'])
+def leaguesplayers(request,pk):
+    if request.method=='GET':
+        equipos = equipo.objects.filter(liga_id=pk)
+        listasi = []
+        for team in equipos.iterator():
+            listasi.append(team.id)
+        players = jugador.objects.filter(equipo_id__in=listasi)
+        serializer = JugadorSerializer(players, many=True)
+        return Response(serializer.data)
+    else:
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+    
+
+@api_view(['GET','PUT'])
+def ligatrain(request,pk):
+    if request.method=='GET':
+        try:
+            teams = equipo.objects.filter(liga_id=pk)
+            serializer = EquipoSerializer(teams, many=True)
+            return Response(serializer.data)
+        except equipo.DoesNotExist:
+            return Response(status=status.HTTP_204_NO_CONTENT)
+    elif request.method=='PUT':
+        equipos = equipo.objects.filter(liga_id=pk)
+        listasi = []
+        for team in equipos.iterator():
+            listasi.append(team.id)
+        players = jugador.objects.filter(equipo_id__in=listasi)
+        for jugi in players.iterator():
+            players.filter(id=jugi.id).update(time_trained=request.data['time_trained'])
+        serializer = JugadorSerializer(players, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    else:
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+@api_view(['PUT'])
+def teamtrain(request,pk):
+    if request.method=='PUT':
+        players = jugador.objects.filter(equipo_id=pk)
+        for jugi in players.iterator():
+            players.filter(id=jugi.id).update(time_trained=request.data['time_trained'])
+        serializer = JugadorSerializer(players, many=True)
+        return Response(serializer.data)
+    else:
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+@api_view(['PUT'])
+def playertrain(request,pk):
+    if request.method=='PUT':
+        jugadores = jugador.objects.get(id=pk)
+        jugadores.time_trained= request.data['time_trained']
+        serializer = JugadorSerializer(jugadores, many=False)
+        return Response(serializer.data)
+    else:
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+
+@api_view(['GET'])
+def playerlist(request):
+    if request.method=='GET':
+        players = jugador.objects.all()
+        serializer = JugadorSerializer(players, many=True)
+        return Response(serializer.data)
+    else:
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+@api_view(['GET','DELETE'])
+def playerdetail(request, pk):
+    if request.method=='GET':
+        try:
+            jugadores = jugador.objects.get(id=pk)
+            serializer = JugadorSerializer(jugadores, many=False)
+            return Response(serializer.data)
+        except jugador.DoesNotExist:
+            return Response(status=status.HTTP_204_NO_CONTENT)
+    elif request.method=='DELETE':
+        player = jugador.objects.get(id=pk)
+        player.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    else:
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
