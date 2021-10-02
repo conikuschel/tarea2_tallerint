@@ -65,7 +65,7 @@ def leagueslist(request):
                 print(serializer.errors)
                 return Response(status=status.HTTP_400_BAD_REQUEST)
 
-            return Response(serializer.data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
     else:
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
     
@@ -112,10 +112,13 @@ def leaguesdetailteam(request, pk):
                 request.data.update({"players": "https://tarea2cgkuschel.herokuapp.com/webapp/teams/{}/players".format(request.data['id'])})
                 request.data.update({"self": "https://tarea2cgkuschel.herokuapp.com/webapp/teams/{}".format(request.data['id'])})
                 serializer = EquipoSerializer(data=request.data)
+                print(request.data)
 
                 if serializer.is_valid():
                     serializer.save()
+                    print(serializer.errors)
                 else:
+                    print(serializer.errors)
                     return Response(status=status.HTTP_400_BAD_REQUEST)
 
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
