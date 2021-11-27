@@ -42,7 +42,7 @@ def leagueslist(request):
         serializer = LigaSerializer(leagues, many=True)
         return Response(serializer.data)
     elif request.method=='POST':
-        if request.data['name'] and request.data['sport']:
+        try: 
             string = request.data['name']+':'+request.data['sport']
             request.data['id'] = b64encode(string.encode()).decode('utf')
             request.data['id'] = request.data['id'][:21]
@@ -67,7 +67,7 @@ def leagueslist(request):
                     return Response(status=status.HTTP_400_BAD_REQUEST)
 
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
-        else:
+        except KeyError:
             return Response(status=status.HTTP_400_BAD_REQUEST)
     else:
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
@@ -99,7 +99,7 @@ def leaguesdetailteam(request, pk):
         except equipo.DoesNotExist:
             return Response(status=status.HTTP_204_NO_CONTENT)
     elif request.method=='POST':
-        if request.data['name'] and request.data['city']:
+        try: 
             string = request.data['name']+':'+request.data['city']
             request.data['id'] = b64encode(string.encode()).decode('utf')
             request.data['id'] = request.data['id'][:21]
@@ -129,7 +129,7 @@ def leaguesdetailteam(request, pk):
 
                 except liga.DoesNotExist:
                     return Response(status=status.HTTP_422_UNPROCESSABLE_ENTITY)
-        else:
+        except KeyError:
             return Response(status=status.HTTP_400_BAD_REQUEST)
     else:
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
@@ -144,7 +144,7 @@ def teamsdetailplayer(request, pk):
         except jugador.DoesNotExist:
             return Response(status=status.HTTP_204_NO_CONTENT)
     elif request.method=='POST':
-        if request.data['name'] and request.data['position']:
+        try:
             string = request.data['name']+':'+request.data['position']
             request.data['id'] = b64encode(string.encode()).decode('utf')
             request.data['id'] = request.data['id'][:21]
@@ -174,7 +174,7 @@ def teamsdetailplayer(request, pk):
                     return Response(serializer.data, status=status.HTTP_201_CREATED)
                 except equipo.DoesNotExist:
                     return Response(status=status.HTTP_422_UNPROCESSABLE_ENTITY)
-        else:
+        except KeyError:
             Response(status=status.HTTP_400_BAD_REQUEST)
     else:
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
