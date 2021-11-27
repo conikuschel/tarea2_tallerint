@@ -42,30 +42,33 @@ def leagueslist(request):
         serializer = LigaSerializer(leagues, many=True)
         return Response(serializer.data)
     elif request.method=='POST':
-        string = request.data['name']+':'+request.data['sport']
-        request.data['id'] = b64encode(string.encode()).decode('utf')
-        request.data['id'] = request.data['id'][:21]
-        try:
-            lig = liga.objects.get(id=request.data['id'])
-            serializer = LigaSerializer(lig, many=False)
-            return Response(serializer.data,status=status.HTTP_409_CONFLICT)
-        except liga.DoesNotExist:
-            request.data.update({"id": request.data['id']})
-            request.data.update({"teams": "https://tarea2cgkuschel.herokuapp.com/webapp/leagues/{}/teams".format(request.data['id'])})
-            request.data.update({"players": "https://tarea2cgkuschel.herokuapp.com/webapp/teams/{}/players".format(request.data['id'])})
-            request.data.update({"self": "https://tarea2cgkuschel.herokuapp.com/webapp/leagues/{}".format(request.data['id'])})
-            print(request.data)
-            
-            serializer = LigaSerializer(data=request.data)
-            
+        if request.data['name'] and request.data['sport']:
+            string = request.data['name']+':'+request.data['sport']
+            request.data['id'] = b64encode(string.encode()).decode('utf')
+            request.data['id'] = request.data['id'][:21]
+            try:
+                lig = liga.objects.get(id=request.data['id'])
+                serializer = LigaSerializer(lig, many=False)
+                return Response(serializer.data,status=status.HTTP_409_CONFLICT)
+            except liga.DoesNotExist:
+                request.data.update({"id": request.data['id']})
+                request.data.update({"teams": "https://tarea2cgkuschel.herokuapp.com/webapp/leagues/{}/teams".format(request.data['id'])})
+                request.data.update({"players": "https://tarea2cgkuschel.herokuapp.com/webapp/teams/{}/players".format(request.data['id'])})
+                request.data.update({"self": "https://tarea2cgkuschel.herokuapp.com/webapp/leagues/{}".format(request.data['id'])})
+                print(request.data)
+                
+                serializer = LigaSerializer(data=request.data)
+                
 
-            if serializer.is_valid():
-                serializer.save()
-            else:
-                print(serializer.errors)
-                return Response(status=status.HTTP_400_BAD_REQUEST)
+                if serializer.is_valid():
+                    serializer.save()
+                else:
+                    print(serializer.errors)
+                    return Response(status=status.HTTP_400_BAD_REQUEST)
 
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
     else:
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
     
@@ -96,35 +99,38 @@ def leaguesdetailteam(request, pk):
         except equipo.DoesNotExist:
             return Response(status=status.HTTP_204_NO_CONTENT)
     elif request.method=='POST':
-        string = request.data['name']+':'+request.data['city']
-        request.data['id'] = b64encode(string.encode()).decode('utf')
-        request.data['id'] = request.data['id'][:21]
-        try:
-            equi = equipo.objects.get(id=request.data['id'])
-            serializer = EquipoSerializer(equi, many=False)
-            return Response(serializer.data,status=status.HTTP_409_CONFLICT)
-        except equipo.DoesNotExist:
-            request.data.update({"id": request.data['id']})
-            request.data.update({"liga_id": pk})
+        if request.data['name'] and request.data['city']:
+            string = request.data['name']+':'+request.data['city']
+            request.data['id'] = b64encode(string.encode()).decode('utf')
+            request.data['id'] = request.data['id'][:21]
             try:
-                liga.objects.get(id=pk)
-                request.data.update({"league": "https://tarea2cgkuschel.herokuapp.com/webapp/leagues/{}".format(request.data['liga_id'])})
-                request.data.update({"players": "https://tarea2cgkuschel.herokuapp.com/webapp/teams/{}/players".format(request.data['id'])})
-                request.data.update({"self": "https://tarea2cgkuschel.herokuapp.com/webapp/teams/{}".format(request.data['id'])})
-                serializer = EquipoSerializer(data=request.data)
-                print(request.data)
+                equi = equipo.objects.get(id=request.data['id'])
+                serializer = EquipoSerializer(equi, many=False)
+                return Response(serializer.data,status=status.HTTP_409_CONFLICT)
+            except equipo.DoesNotExist:
+                request.data.update({"id": request.data['id']})
+                request.data.update({"liga_id": pk})
+                try:
+                    liga.objects.get(id=pk)
+                    request.data.update({"league": "https://tarea2cgkuschel.herokuapp.com/webapp/leagues/{}".format(request.data['liga_id'])})
+                    request.data.update({"players": "https://tarea2cgkuschel.herokuapp.com/webapp/teams/{}/players".format(request.data['id'])})
+                    request.data.update({"self": "https://tarea2cgkuschel.herokuapp.com/webapp/teams/{}".format(request.data['id'])})
+                    serializer = EquipoSerializer(data=request.data)
+                    print(request.data)
 
-                if serializer.is_valid():
-                    serializer.save()
-                    print(serializer.errors)
-                else:
-                    print(serializer.errors)
-                    return Response(status=status.HTTP_400_BAD_REQUEST)
+                    if serializer.is_valid():
+                        serializer.save()
+                        print(serializer.errors)
+                    else:
+                        print(serializer.errors)
+                        return Response(status=status.HTTP_400_BAD_REQUEST)
 
-                return Response(serializer.data, status=status.HTTP_201_CREATED)
+                    return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-            except liga.DoesNotExist:
-                return Response(status=status.HTTP_422_UNPROCESSABLE_ENTITY)
+                except liga.DoesNotExist:
+                    return Response(status=status.HTTP_422_UNPROCESSABLE_ENTITY)
+        else:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
     else:
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
@@ -138,35 +144,38 @@ def teamsdetailplayer(request, pk):
         except jugador.DoesNotExist:
             return Response(status=status.HTTP_204_NO_CONTENT)
     elif request.method=='POST':
-        string = request.data['name']+':'+request.data['position']
-        request.data['id'] = b64encode(string.encode()).decode('utf')
-        request.data['id'] = request.data['id'][:21]
-        try:
-            jug = jugador.objects.get(id=request.data['id'])
-            serializer = EquipoSerializer(jug, many=False)
-            return Response(serializer.data,status=status.HTTP_409_CONFLICT)
-        except jugador.DoesNotExist:
-            request.data.update({"id": request.data['id']})
-            request.data.update({"equipo_id": pk})
+        if request.data['name'] and request.data['position']:
+            string = request.data['name']+':'+request.data['position']
+            request.data['id'] = b64encode(string.encode()).decode('utf')
+            request.data['id'] = request.data['id'][:21]
             try:
-                print(pk)
-                equipote = equipo.objects.get(id=pk)
-                serializer2 = EquipoSerializer(equipote, many=False)
-                request.data.update({"league": "https://tarea2cgkuschel.herokuapp.com/webapp/leagues/{}".format(serializer2.data['liga_id'])})
-                request.data.update({"team": "https://tarea2cgkuschel.herokuapp.com/webapp/teams/{}".format(request.data['equipo_id'])})
-                request.data.update({"self": "https://tarea2cgkuschel.herokuapp.com/webapp/players/{}".format(request.data['id'])})
-                serializer = JugadorSerializer(data=request.data)
-                print(request.data)
+                jug = jugador.objects.get(id=request.data['id'])
+                serializer = EquipoSerializer(jug, many=False)
+                return Response(serializer.data,status=status.HTTP_409_CONFLICT)
+            except jugador.DoesNotExist:
+                request.data.update({"id": request.data['id']})
+                request.data.update({"equipo_id": pk})
+                try:
+                    print(pk)
+                    equipote = equipo.objects.get(id=pk)
+                    serializer2 = EquipoSerializer(equipote, many=False)
+                    request.data.update({"league": "https://tarea2cgkuschel.herokuapp.com/webapp/leagues/{}".format(serializer2.data['liga_id'])})
+                    request.data.update({"team": "https://tarea2cgkuschel.herokuapp.com/webapp/teams/{}".format(request.data['equipo_id'])})
+                    request.data.update({"self": "https://tarea2cgkuschel.herokuapp.com/webapp/players/{}".format(request.data['id'])})
+                    serializer = JugadorSerializer(data=request.data)
+                    print(request.data)
 
-                if serializer.is_valid():
-                    serializer.save()
-                else:
-                    print(serializer.errors)
-                    return Response(status=status.HTTP_400_BAD_REQUEST)
+                    if serializer.is_valid():
+                        serializer.save()
+                    else:
+                        print(serializer.errors)
+                        return Response(status=status.HTTP_400_BAD_REQUEST)
 
-                return Response(serializer.data, status=status.HTTP_201_CREATED)
-            except equipo.DoesNotExist:
-                return Response(status=status.HTTP_422_UNPROCESSABLE_ENTITY)
+                    return Response(serializer.data, status=status.HTTP_201_CREATED)
+                except equipo.DoesNotExist:
+                    return Response(status=status.HTTP_422_UNPROCESSABLE_ENTITY)
+        else:
+            Response(status=status.HTTP_400_BAD_REQUEST)
     else:
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
